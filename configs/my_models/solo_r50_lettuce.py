@@ -1,4 +1,5 @@
-_base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
+_base_ = '../solo/solo_r50_fpn_1x_coco.py'
+
 
 data_root = 'data/mmdet_dataset/'
 
@@ -8,13 +9,6 @@ metainfo = {
 }
 
 num_classes = 1
-
-model = dict(
-    roi_head=dict(
-        bbox_head=dict(num_classes=num_classes),
-        mask_head=dict(num_classes=num_classes)
-    )
-)
 
 train_dataloader = dict(
     batch_size=2,
@@ -58,4 +52,11 @@ default_hooks = dict(
     logger=dict(interval=50)
 )
 
-load_from = 'checkpoints/mask_rcnn_r50_fpn_1x_coco_20200205-d4b0c5d6.pth'
+
+model = dict(
+    mask_head=dict(num_classes=num_classes)
+)
+
+load_from = 'checkpoints/solo_r50.pth'
+
+work_dir = './work_dirs/solo_r50_lettuce'
