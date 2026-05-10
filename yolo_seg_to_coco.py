@@ -5,9 +5,9 @@ import shutil
 from pathlib import Path
 
 
-DATASET_DIR = Path("dataset")
+DATASET_DIR = Path("test")
 IMAGE_DIR = DATASET_DIR / "images"
-LABEL_DIR = DATASET_DIR / "labels"
+LABEL_DIR = DATASET_DIR / "instances"
 
 OUTPUT_DIR = Path("mmdet_dataset")
 

@@ -1,7 +1,7 @@
 _base_ = '../solov2/solov2_r50_fpn_1x_coco.py'
 
 
-data_root = 'data/mmdet_dataset/'
+data_root = 'data/mmdet_dataset_0011/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -32,14 +32,26 @@ val_dataloader = dict(
     )
 )
 
-test_dataloader = val_dataloader
+test_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    dataset=dict(
+        data_root=data_root,
+        metainfo=metainfo,
+        ann_file='annotations/test.json',
+        data_prefix=dict(img='images/')
+    )
+)
 
 val_evaluator = dict(
     ann_file=data_root + 'annotations/val.json',
     metric=['bbox', 'segm']
 )
 
-test_evaluator = val_evaluator
+test_evaluator = dict(
+    ann_file=data_root + 'annotations/test.json',
+    metric=['bbox', 'segm']
+)
 
 train_cfg = dict(
     type='EpochBasedTrainLoop',
