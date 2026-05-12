@@ -1,7 +1,7 @@
 _base_ = '../cascade_rcnn/cascade-mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset/'
+data_root = 'data/mmdet_dataset_0003/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -127,6 +127,15 @@ val_evaluator = dict(
 test_evaluator = dict(
     ann_file=data_root + 'annotations/test.json',
     metric=['bbox', 'segm']
+)
+default_hooks = dict(
+    checkpoint=dict(
+        type='CheckpointHook',
+        interval=1,
+        save_best='coco/segm_mAP',
+        rule='greater',
+        max_keep_ckpts=3
+    )
 )
 
 train_cfg = dict(max_epochs=50)

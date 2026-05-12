@@ -1,95 +1,21 @@
 _base_ = '../cascade_rcnn/cascade-mask-rcnn_r50_fpn_1x_coco.py'
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from mmdet.registry import MODELS
-from mmdet.models.detectors import CascadeRCNN
-
-
-# =========================
-# Frequency Attention Module
-# =========================
-
-class FA(nn.Module):
-
-    def __init__(self, c=256):
-        super().__init__()
-
-        self.fuse = nn.Sequential(
-            nn.Conv2d(c * 2, c, 1),
-            nn.BatchNorm2d(c),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-
-        # low-frequency
-        low = F.avg_pool2d(x, 3, 1, 1)
-
-        # high-frequency
-        high = x - low
-
-        out = torch.cat([low, high], dim=1)
-
-        out = self.fuse(out)
-
-        return x + out
-
-
-# =========================
-# FA Cascade Mask R-CNN
-# =========================
-
-@MODELS.register_module()
-class FACascadeMaskRCNN(CascadeRCNN):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.fa = nn.ModuleList([
-            FA(256) for _ in range(5)
-        ])
-
-    def extract_feat(self, batch_inputs):
-
-        feats = super().extract_feat(batch_inputs)
-
-        feats = tuple(
-            m(f)
-            for m, f in zip(self.fa, feats)
-        )
-
-        return feats
-
-
-# =========================
-# DATASET
-# =========================
+custom_imports = dict(
+    imports=['models.fa_cascade_mask_rcnn'],
+    allow_failed_imports=False
+)
 
 dataset_type = 'CocoDataset'
-
-data_root = 'data/mmdet_dataset/'
+data_root = 'data/mmdet_dataset_0007/'
 
 metainfo = {
     'classes': ('lettuce',),
     'palette': [(0, 255, 0)]
 }
 
-
-# =========================
-# MODEL
-# =========================
-
 model = dict(
-
-    type='FACascadeMaskRCNN',
-
     roi_head=dict(
-
         bbox_head=[
-
             dict(
                 type='Shared2FCBBoxHead',
                 in_channels=256,
@@ -110,7 +36,6 @@ model = dict(
                     beta=1.0,
                     loss_weight=1.0)
             ),
-
             dict(
                 type='Shared2FCBBoxHead',
                 in_channels=256,
@@ -131,7 +56,6 @@ model = dict(
                     beta=1.0,
                     loss_weight=1.0)
             ),
-
             dict(
                 type='Shared2FCBBoxHead',
                 in_channels=256,
@@ -153,7 +77,6 @@ model = dict(
                     loss_weight=1.0)
             )
         ],
-
         mask_head=dict(
             type='FCNMaskHead',
             num_convs=4,
@@ -168,15 +91,11 @@ model = dict(
     )
 )
 
-
-# =========================
-# DATALOADER
-# =========================
-
 train_dataloader = dict(
     batch_size=2,
     num_workers=2,
     dataset=dict(
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/train.json',
@@ -188,6 +107,7 @@ val_dataloader = dict(
     batch_size=1,
     num_workers=2,
     dataset=dict(
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/val.json',
@@ -199,6 +119,7 @@ test_dataloader = dict(
     batch_size=1,
     num_workers=2,
     dataset=dict(
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
@@ -206,26 +127,38 @@ test_dataloader = dict(
     )
 )
 
-
-# =========================
-# EVALUATOR
-# =========================
-
 val_evaluator = dict(
+    type='CocoMetric',
     ann_file=data_root + 'annotations/val.json',
     metric=['bbox', 'segm']
 )
 
 test_evaluator = dict(
+    type='CocoMetric',
     ann_file=data_root + 'annotations/test.json',
     metric=['bbox', 'segm']
 )
 
+train_cfg = dict(
+    type='EpochBasedTrainLoop',
+    max_epochs=50,
+    val_interval=1
+)
 
-# =========================
-# TRAIN
-# =========================
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
 
-train_cfg = dict(max_epochs=50)
+default_hooks = dict(
+    checkpoint=dict(
+        type='CheckpointHook',
+        interval=1,
+        save_best='coco/segm_mAP',
+        rule='greater',
+        max_keep_ckpts=3
+    ),
+    logger=dict(type='LoggerHook', interval=50)
+)
 
 load_from = 'checkpoints/cascade_mask_rcnn_r50.pth'
+
+work_dir = './work_dirs/fa_cascade_mask_rcnn_r50_lettuce'
