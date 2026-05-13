@@ -1,7 +1,7 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset/'
+data_root = 'data/mmdet_dataset_0003/'
 
 metainfo = {
     'classes': ('lettuce',),

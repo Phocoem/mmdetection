@@ -1,35 +1,56 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset_0003/'
+data_root = 'data/mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),
     'palette': [(220, 20, 60)]
 }
 
+custom_imports = dict(
+    imports=['mmpretrain.models'],
+    allow_failed_imports=False
+)
+
 model = dict(
+backbone=dict(
+    _delete_=True,
+    type='mmpretrain.VisionTransformer',
+    arch=dict(
+        embed_dims=384,
+        num_layers=12,
+        num_heads=6,
+        feedforward_channels=1536
+    ),
+    img_size=518,
+    patch_size=14,
+    out_indices=(2, 5, 8, 11),
+    out_type='featmap',
+    final_norm=False,
+    init_cfg=dict(
+        type='Pretrained',
+        checkpoint='https://download.openmmlab.com/mmpretrain/v1.0/dinov2/vit-small-p14_dinov2-pre_3rdparty_20230426-5641ca5a.pth',
+        prefix='backbone.'
+    )
+    ),
+    neck=dict(
+        type='FPN',
+        in_channels=[384, 384, 384, 384],
+        out_channels=256,
+        num_outs=5
+    ),
     roi_head=dict(
         bbox_head=dict(num_classes=1),
         mask_head=dict(num_classes=1)
-    ),
-    neck=dict(
-        type='CBAMASPPFPN',
-        in_channels=[256, 512, 1024, 2048],
-        out_channels=256,
-        num_outs=5,
-        cbam_reduction=16,
-        aspp_dilations=(1, 3, 6, 9)
     )
 )
 
-
-
 train_dataloader = dict(
-    batch_size=2,
+    batch_size=1,
     num_workers=2,
     dataset=dict(
-        type='CocoDataset',
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/train.json',
@@ -42,24 +63,13 @@ val_dataloader = dict(
     batch_size=1,
     num_workers=2,
     dataset=dict(
-        type='CocoDataset',
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/val.json',
         data_prefix=dict(img='images/val/'),
         test_mode=True
     )
-)
-
-test_evaluator = dict(
-    type='CocoMetric',
-    ann_file=data_root + 'annotations/test.json',
-    metric=['bbox', 'segm']
-)
-val_evaluator = dict(
-    type='CocoMetric',
-    ann_file=data_root + 'annotations/val.json',
-    metric=['bbox', 'segm']
 )
 
 test_dataloader = dict(
@@ -70,9 +80,21 @@ test_dataloader = dict(
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
-        data_prefix=dict(img='images/'),
+        data_prefix=dict(img='images/test/'),
         test_mode=True
     )
+)
+
+val_evaluator = dict(
+    type='CocoMetric',
+    ann_file=data_root + 'annotations/val.json',
+    metric=['bbox', 'segm']
+)
+
+test_evaluator = dict(
+    type='CocoMetric',
+    ann_file=data_root + 'annotations/test.json',
+    metric=['bbox', 'segm']
 )
 
 train_cfg = dict(
@@ -85,11 +107,13 @@ val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
 optim_wrapper = dict(
+    _delete_=True,
+    type='OptimWrapper',
     optimizer=dict(
-        type='SGD',
-        lr=0.0025,
-        momentum=0.9,
-        weight_decay=0.0001
+        type='AdamW',
+        lr=0.0001,
+        betas=(0.9, 0.999),
+        weight_decay=0.05
     )
 )
 
@@ -125,6 +149,6 @@ default_hooks = dict(
     )
 )
 
-load_from = 'checkpoints/mask_rcnn_r50.pth'
+load_from = None
 
-work_dir = './work_dirs/mask-rcnn_r50_cbam-aspp-fpn'
+work_dir = './work_dirs/mask-rcnn_dinov2_vits14_fpn'
