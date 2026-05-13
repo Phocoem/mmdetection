@@ -1,7 +1,7 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset_0011/'
+data_root = 'data/mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -14,11 +14,12 @@ model = dict(
         mask_head=dict(num_classes=1)
     ),
     neck=dict(
-        type='CBAMFPN',
+        type='CBAMASPPFPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         num_outs=5,
-        cbam_reduction=16
+        cbam_reduction=16,
+        aspp_dilations=(1, 3, 6, 9)
     )
 )
 
@@ -126,4 +127,4 @@ default_hooks = dict(
 
 load_from = 'checkpoints/mask_rcnn_r50.pth'
 
-work_dir = './work_dirs/mask-rcnn_r50_cbam-fpn'
+work_dir = './work_dirs/mask-rcnn_r50_cbam-aspp-fpn'
