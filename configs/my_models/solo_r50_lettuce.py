@@ -1,7 +1,7 @@
 _base_ = '../solo/solo_r50_fpn_1x_coco.py'
 
 
-data_root = 'data/mmdet_dataset_0011/'
+data_root = 'mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),

@@ -5,9 +5,9 @@ import shutil
 from pathlib import Path
 
 DATASET_DIR = Path("test")
-IMAGE_DIR = DATASET_DIR / "images_0011"
-MASK_DIR = DATASET_DIR / "instances_0011"
-OUTPUT_DIR = Path("mmdet_dataset_0011")
+IMAGE_DIR = DATASET_DIR / "images"
+MASK_DIR = DATASET_DIR / "instances"
+OUTPUT_DIR = Path("mmdet_dataset")
 
 CLASS_NAMES = ["lettuce"]
 MIN_AREA = 10

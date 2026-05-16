@@ -1,7 +1,7 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset/'
+data_root = 'data/mmdet_dataset_0003/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -47,7 +47,7 @@ backbone=dict(
 )
 
 train_dataloader = dict(
-    batch_size=1,
+    batch_size=2,
     num_workers=2,
     dataset=dict(
         type=dataset_type,
@@ -60,7 +60,7 @@ train_dataloader = dict(
 )
 
 val_dataloader = dict(
-    batch_size=1,
+    batch_size=2,
     num_workers=2,
     dataset=dict(
         type=dataset_type,
@@ -73,14 +73,14 @@ val_dataloader = dict(
 )
 
 test_dataloader = dict(
-    batch_size=1,
+    batch_size=2,
     num_workers=2,
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
-        data_prefix=dict(img='images/test/'),
+        data_prefix=dict(img='images/'),
         test_mode=True
     )
 )

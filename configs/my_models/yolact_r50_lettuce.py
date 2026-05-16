@@ -1,7 +1,7 @@
 _base_ = '../yolact/yolact_r50_1xb8-55e_coco.py'
 
 
-data_root = 'data/mmdet_dataset_0011/'
+data_root = 'mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),

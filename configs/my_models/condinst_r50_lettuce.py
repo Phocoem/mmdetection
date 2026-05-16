@@ -1,7 +1,7 @@
 _base_ = '../condinst/condinst_r50_fpn_ms-poly-90k_coco_instance.py'
 
 
-data_root = 'data/mmdet_dataset_0011/'
+data_root = 'mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),

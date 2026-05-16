@@ -6,6 +6,8 @@ from mmdet.registry import MODELS
 from mmcv.cnn import ConvModule
 from mmdet.models.necks.fpn import FPN
 
+from visualize_feature import save_feature_map
+
 
 class ChannelAttention(nn.Module):
     def __init__(self, channels, reduction=16):
@@ -83,6 +85,7 @@ class ASPP(nn.Module):
 
 @MODELS.register_module()
 class CBAMASPPFPN(FPN):
+
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -90,6 +93,7 @@ class CBAMASPPFPN(FPN):
                  cbam_reduction=16,
                  aspp_dilations=(1, 3, 6, 9),
                  **kwargs):
+
         super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -107,13 +111,87 @@ class CBAMASPPFPN(FPN):
             for _ in range(num_outs)
         ])
 
+    # =====================================================
+    # FORWARD
+    # =====================================================
+
     def forward(self, inputs):
+
+        import os
+        log_file = "model_shapes_log.txt"
+        
+        # Đảm bảo file tồn tại
+        if not os.path.exists(log_file):
+            with open(log_file, "w", encoding='utf-8') as f:
+                f.write("=== LOG KÍCH THƯỚC NECK (CBAM-ASPP-FPN) ===\n")
+
+        # Ghi log cho từng tầng đặc trưng đầu vào từ Backbone
+        with open(log_file, "a", encoding='utf-8') as f:
+            f.write(f"\n--- Forward Pass tại: {self.__class__.__name__} ---\n")
+            for i, feat in enumerate(inputs):
+                # Thay vì dùng 'x', chúng ta dùng 'feat' trong vòng lặp
+                f.write(f"  - Input C{i+2} shape: {list(feat.shape)}\n")
+            f.write("-" * 30 + "\n")
+            
+        # FPN output
         outs = super().forward(inputs)
 
         new_outs = []
+
         for i, out in enumerate(outs):
-            out = self.cbams[i](out)
-            out = self.aspps[i](out)
-            new_outs.append(out)
+
+            # =====================================
+            # INPUT FEATURE
+            # =====================================
+
+            input_feat = out
+
+            # =====================================
+            # CBAM
+            # =====================================
+
+            cbam_out = self.cbams[i](input_feat)
+
+            # =====================================
+            # ASPP
+            # =====================================
+
+            aspp_out = self.aspps[i](input_feat)
+
+            # =====================================
+            # CBAM + ASPP
+            # =====================================
+
+            cbam_aspp_out = self.aspps[i](cbam_out)
+
+            # =====================================
+            # SAVE ONLY ONCE
+            # =====================================
+
+            if not hasattr(self, 'saved'):
+
+                self.saved = True
+
+                save_feature_map(
+                    input_feat,
+                    f'./work_dirs/feature_vis/P{i+2}_input.png'
+                )
+
+                save_feature_map(
+                    cbam_out,
+                    f'./work_dirs/feature_vis/P{i+2}_cbam.png'
+                )
+
+                save_feature_map(
+                    aspp_out,
+                    f'./work_dirs/feature_vis/P{i+2}_aspp.png'
+                )
+
+                save_feature_map(
+                    cbam_aspp_out,
+                    f'./work_dirs/feature_vis/P{i+2}_cbam_aspp.png'
+                )
+
+            new_outs.append(cbam_aspp_out)
 
         return tuple(new_outs)

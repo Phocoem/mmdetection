@@ -1,7 +1,7 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'data/mmdet_dataset_0003/'
+data_root = 'mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -26,7 +26,7 @@ model = dict(
 
 
 train_dataloader = dict(
-    batch_size=2,
+    batch_size=8,
     num_workers=2,
     dataset=dict(
         type='CocoDataset',
@@ -47,12 +47,11 @@ val_dataloader = dict(
         metainfo=metainfo,
         ann_file='annotations/val.json',
         data_prefix=dict(img='images/val/'),
-        test_mode=True
     )
 )
 
 test_evaluator = dict(
-    type='CocoMetric',
+    #type='CocoMetric',
     ann_file=data_root + 'annotations/test.json',
     metric=['bbox', 'segm']
 )
@@ -66,12 +65,12 @@ test_dataloader = dict(
     batch_size=1,
     num_workers=2,
     dataset=dict(
-        type=dataset_type,
+        #type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
         data_prefix=dict(img='images/'),
-        test_mode=True
+        #test_mode=True
     )
 )
 

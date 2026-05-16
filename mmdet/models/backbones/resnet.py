@@ -629,21 +629,36 @@ class ResNet(BaseModule):
                 param.requires_grad = False
 
     def forward(self, x):
-        """Forward function."""
-        if self.deep_stem:
-            x = self.stem(x)
-        else:
-            x = self.conv1(x)
-            x = self.norm1(x)
-            x = self.relu(x)
-        x = self.maxpool(x)
-        outs = []
-        for i, layer_name in enumerate(self.res_layers):
-            res_layer = getattr(self, layer_name)
-            x = res_layer(x)
-            if i in self.out_indices:
-                outs.append(x)
-        return tuple(outs)
+            """Forward function."""
+            # 1. Log kích thước ảnh đầu vào (Input Image)
+            import os
+            log_file = "backbone_shapes_log.txt"
+            if not os.path.exists(log_file):
+                with open(log_file, "w") as f:
+                    f.write("=== BACKBONE SHAPES LOG ===\n")
+
+            with open(log_file, "a") as f:
+                f.write(f"\nInput Image Shape: {list(x.shape)}\n")
+
+            if self.deep_stem:
+                x = self.stem(x)
+            else:
+                x = self.conv1(x)
+                x = self.norm1(x)
+                x = self.relu(x)
+            x = self.maxpool(x)
+            
+            outs = []
+            for i, layer_name in enumerate(self.res_layers):
+                res_layer = getattr(self, layer_name)
+                x = res_layer(x)
+                if i in self.out_indices:
+                    outs.append(x)
+                    # 2. Log kích thước của từng tầng C (C2, C3, C4, C5)
+                    with open(log_file, "a") as f:
+                        f.write(f"  - Stage {i+1} (C{i+2}) Output: {list(x.shape)}\n")
+            
+            return tuple(outs)
 
     def train(self, mode=True):
         """Convert the model into training mode while keep normalization layer
