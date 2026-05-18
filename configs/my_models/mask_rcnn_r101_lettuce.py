@@ -1,7 +1,7 @@
 _base_ = '../mask_rcnn/mask-rcnn_r101_fpn_1x_coco.py'
 
 
-data_root = 'mmdet_dataset/'
+data_root = 'data/mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -32,28 +32,14 @@ val_dataloader = dict(
     )
 )
 
-
-test_dataloader = dict(
-    batch_size=1,
-    num_workers=2,
-    dataset=dict(
-        data_root=data_root,
-        metainfo=metainfo,
-        ann_file='annotations/test.json',
-        data_prefix=dict(img='images/')
-    )
-)
-
-test_evaluator = dict(
-    ann_file=data_root + 'annotations/test.json',
-    metric=['bbox', 'segm']
-)
+test_dataloader = val_dataloader
 
 val_evaluator = dict(
     ann_file=data_root + 'annotations/val.json',
     metric=['bbox', 'segm']
 )
 
+test_evaluator = val_evaluator
 
 train_cfg = dict(
     type='EpochBasedTrainLoop',

@@ -51,7 +51,7 @@ val_dataloader = dict(
 )
 
 test_evaluator = dict(
-    #type='CocoMetric',
+    type='CocoMetric',
     ann_file=data_root + 'annotations/test.json',
     metric=['bbox', 'segm']
 )
@@ -62,15 +62,15 @@ val_evaluator = dict(
 )
 
 test_dataloader = dict(
-    batch_size=1,
+    batch_size=4,
     num_workers=2,
     dataset=dict(
-        #type=dataset_type,
+        type=dataset_type,
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
         data_prefix=dict(img='images/'),
-        #test_mode=True
+        test_mode=True
     )
 )
 

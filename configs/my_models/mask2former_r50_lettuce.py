@@ -1,7 +1,7 @@
-_base_ = '../solo/solo_r50_fpn_1x_coco.py'
+_base_ = '../mask2former/mask2former_r50_8xb2-lsj-50e_coco.py'
 
 
-data_root = 'data/mmdet_dataset/'
+data_root = 'mmdet_dataset/'
 
 metainfo = {
     'classes': ('lettuce',),
@@ -54,9 +54,41 @@ default_hooks = dict(
 
 
 model = dict(
-    mask_head=dict(num_classes=num_classes)
+    panoptic_head=dict(
+        num_classes=num_classes
+    ),
+    panoptic_fusion_head=dict(
+        num_instances=num_classes
+    )
 )
 
-load_from = 'checkpoints/solo_r50.pth'
+train_cfg = dict(
+    type='IterBasedTrainLoop', 
+    max_iters=10000,         
+    val_interval=500      
+)
 
-work_dir = './work_dirs/solo_r50_lettuce'
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
+
+default_hooks = dict(
+    checkpoint=dict(
+        type='CheckpointHook', 
+        by_epoch=False, 
+        interval=1000, 
+        max_keep_ckpts=3
+    ),
+    logger=dict(type='LoggerHook', interval=50)
+)
+
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(
+        type='AdamW',
+        lr=0.0001,
+        weight_decay=0.05),
+    clip_grad=dict(max_norm=0.01, norm_type=2)
+)
+
+load_from = 'checkpoints/mask2former_r50.pth'
+work_dir = './work_dirs/mask2former_r50_lettuce'

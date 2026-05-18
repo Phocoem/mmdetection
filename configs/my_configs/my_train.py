@@ -150,6 +150,54 @@ load_from = 'checkpoints/solov2_r50.pth'
 work_dir = './work_dirs/solov2_r50_lettuce'
 """
     },
+"mask2former": {
+        "filename": "mask2former_r50_lettuce.py",
+        "content": f"""
+_base_ = '../mask2former/mask2former_r50_8xb2-lsj-50e_coco.py'
+
+{common}
+
+model = dict(
+    panoptic_head=dict(
+        num_classes=num_classes
+    ),
+    panoptic_fusion_head=dict(
+        num_instances=num_classes
+    )
+)
+
+train_cfg = dict(
+    type='IterBasedTrainLoop', 
+    max_iters=10000,         
+    val_interval=500      
+)
+
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
+
+default_hooks = dict(
+    checkpoint=dict(
+        type='CheckpointHook', 
+        by_epoch=False, 
+        interval=1000, 
+        max_keep_ckpts=3
+    ),
+    logger=dict(type='LoggerHook', interval=50)
+)
+
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(
+        type='AdamW',
+        lr=0.0001,
+        weight_decay=0.05),
+    clip_grad=dict(max_norm=0.01, norm_type=2)
+)
+
+load_from = 'checkpoints/mask2former_r50.pth'
+work_dir = './work_dirs/mask2former_r50_lettuce'
+"""
+    },
 
 "condinst": {
     "filename": "condinst_r50_lettuce.py",
@@ -181,7 +229,9 @@ default_hooks = dict(
 load_from = 'checkpoints/condinst_r50.pth'
 work_dir = './work_dirs/condinst_r50_lettuce'
 """
+
 }
+
 }
 
 
