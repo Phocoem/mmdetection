@@ -14,16 +14,13 @@ model = dict(
         mask_head=dict(num_classes=1)
     ),
     neck=dict(
-        type='CBAMASPPFPN',
+        type='ECAFPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         num_outs=5,
-        cbam_reduction=16,
-        aspp_dilations=(1, 3, 6, 9)
+        eca_kernel_size=3
     )
 )
-
-
 
 train_dataloader = dict(
     batch_size=2,
@@ -127,4 +124,4 @@ default_hooks = dict(
 
 load_from = 'checkpoints/mask_rcnn_r50.pth'
 
-work_dir = './work_dirs/mask-rcnn_r50_cbam-aspp-fpn'
+work_dir = './work_dirs/mask-rcnn_r50_eca-fpn'

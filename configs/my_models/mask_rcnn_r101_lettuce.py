@@ -43,12 +43,12 @@ test_evaluator = val_evaluator
 
 train_cfg = dict(
     type='EpochBasedTrainLoop',
-    max_epochs=50,
-    val_interval=5
+    max_epochs=40,
+    val_interval=2
 )
 
 default_hooks = dict(
-    checkpoint=dict(interval=5, max_keep_ckpts=3),
+    checkpoint=dict(interval=1, save_best='coco/segm_mAP', rule='greater', max_keep_ckpts=2),
     logger=dict(interval=50)
 )
 

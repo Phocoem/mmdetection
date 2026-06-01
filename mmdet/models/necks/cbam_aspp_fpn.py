@@ -83,6 +83,22 @@ class ASPP(nn.Module):
         return self.project(outs)
 
 
+class ECA(nn.Module):
+    def __init__(self, channels, k_size=3):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        y = self.avg_pool(x)
+        y = y.squeeze(-1).transpose(-1, -2)  # N,1,C
+        y = self.conv(y)
+        y = self.sigmoid(y)
+        y = y.transpose(-1, -2).unsqueeze(-1)
+        return x * y
+
+
 @MODELS.register_module()
 class CBAMASPPFPN(FPN):
 
@@ -195,3 +211,117 @@ class CBAMASPPFPN(FPN):
             new_outs.append(cbam_aspp_out)
 
         return tuple(new_outs)
+
+
+@MODELS.register_module()
+class ECAFPN(FPN):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_outs,
+        eca_kernel_size=3,
+        **kwargs
+    ):
+        super().__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            num_outs=num_outs,
+            **kwargs
+        )
+
+        self.ecas = nn.ModuleList([
+            ECA(out_channels, k_size=eca_kernel_size)
+            for _ in range(num_outs)
+        ])
+
+    def forward(self, inputs):
+        outs = super().forward(inputs)
+        outs = [self.ecas[i](outs[i]) for i in range(len(outs))]
+        return tuple(outs)
+
+
+@MODELS.register_module()
+class CBAMASPPBiFPN(FPN):
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_outs,
+        cbam_reduction=16,
+        aspp_dilations=(1, 3, 6, 9),
+        **kwargs
+    ):
+        super().__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            num_outs=num_outs,
+            **kwargs
+        )
+
+        self.cbams = nn.ModuleList([
+            CBAM(out_channels, cbam_reduction)
+            for _ in range(num_outs)
+        ])
+
+        self.aspps = nn.ModuleList([
+            ASPP(out_channels, out_channels, aspp_dilations)
+            for _ in range(num_outs)
+        ])
+
+        self.res_convs = nn.ModuleList([
+            ConvModule(
+                out_channels * 4,
+                out_channels,
+                kernel_size=1,
+                norm_cfg=dict(type='BN'),
+                act_cfg=None
+            )
+            for _ in range(num_outs)
+        ])
+
+        self.downsample_convs = nn.ModuleList([
+            ConvModule(
+                out_channels,
+                out_channels,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                norm_cfg=dict(type='BN'),
+                act_cfg=dict(type='ReLU')
+            )
+            for _ in range(num_outs - 1)
+        ])
+
+        self.bifpn_fuse = nn.ModuleList([
+            ConvModule(
+                out_channels * 2,
+                out_channels,
+                kernel_size=3,
+                padding=1,
+                norm_cfg=dict(type='BN'),
+                act_cfg=dict(type='ReLU')
+            )
+            for _ in range(num_outs - 1)
+        ])
+
+    def forward(self, inputs):
+        outs = super().forward(inputs)
+
+        enhanced_outs = []
+        for i, out in enumerate(outs):
+            cbam_out = self.cbams[i](out)
+            aspp_out = self.aspps[i](out)
+            cbam_aspp_out = self.aspps[i](cbam_out)
+
+            fused = torch.cat([out, cbam_out, aspp_out, cbam_aspp_out], dim=1)
+            fused = self.res_convs[i](fused)
+            enhanced_outs.append(out + fused)
+
+        for i in range(len(enhanced_outs) - 1):
+            down = self.downsample_convs[i](enhanced_outs[i])
+            fused = self.bifpn_fuse[i](torch.cat([enhanced_outs[i + 1], down], dim=1))
+            enhanced_outs[i + 1] = enhanced_outs[i + 1] + fused
+
+        return tuple(enhanced_outs)

@@ -41,18 +41,6 @@ val_evaluator = dict(
 
 test_evaluator = val_evaluator
 
-train_cfg = dict(
-    type='EpochBasedTrainLoop',
-    max_epochs=50,
-    val_interval=5
-)
-
-default_hooks = dict(
-    checkpoint=dict(interval=5, max_keep_ckpts=3),
-    logger=dict(interval=50)
-)
-
-
 model = dict(
     bbox_head=dict(
         num_classes=num_classes
@@ -60,16 +48,16 @@ model = dict(
 )
 
 train_cfg = dict(
-    type='IterBasedTrainLoop',
-    max_iters=10000,
-    val_interval=1000
+    type='EpochBasedTrainLoop',
+    max_epochs=40,
+    val_interval=2
 )
 
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
 default_hooks = dict(
-    checkpoint=dict(by_epoch=False, interval=1000, max_keep_ckpts=3),
+    checkpoint=dict(interval=1, save_best='coco/segm_mAP', rule='greater', max_keep_ckpts=2),
     logger=dict(interval=50)
 )
 

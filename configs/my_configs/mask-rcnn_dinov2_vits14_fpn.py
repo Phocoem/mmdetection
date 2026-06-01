@@ -99,8 +99,8 @@ test_evaluator = dict(
 
 train_cfg = dict(
     type='EpochBasedTrainLoop',
-    max_epochs=50,
-    val_interval=1
+    max_epochs=40,
+    val_interval=2
 )
 
 val_cfg = dict(type='ValLoop')
@@ -128,9 +128,9 @@ param_scheduler = [
     dict(
         type='MultiStepLR',
         begin=0,
-        end=50,
+        end=40,
         by_epoch=True,
-        milestones=[35, 45],
+        milestones=[28, 36],
         gamma=0.1
     )
 ]
@@ -141,7 +141,7 @@ default_hooks = dict(
         interval=1,
         save_best='coco/segm_mAP',
         rule='greater',
-        max_keep_ckpts=3
+        max_keep_ckpts=2
     ),
     logger=dict(
         type='LoggerHook',
