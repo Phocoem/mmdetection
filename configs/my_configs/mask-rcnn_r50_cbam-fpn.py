@@ -1,10 +1,10 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 dataset_type = 'CocoDataset'
-data_root = 'mmdet_dataset/'
+data_root = 'mmdet_dataset/cabbages'
 
 metainfo = {
-    'classes': ('lettuce',),
+    'classes': ('cabbage',),
     'palette': [(220, 20, 60)]
 }
 
@@ -69,7 +69,7 @@ test_dataloader = dict(
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
-        data_prefix=dict(img='images/'),
+        data_prefix=dict(img='images/test/'),
         test_mode=True
     )
 )

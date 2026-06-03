@@ -76,7 +76,7 @@ test_dataloader = dict(
         data_root=data_root,
         metainfo=metainfo,
         ann_file='annotations/test.json',
-        data_prefix=dict(img='images/'),
+        data_prefix=dict(img='images/test/'),
         test_mode=True
     )
 )

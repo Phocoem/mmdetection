@@ -1,0 +1,49 @@
+from typing import Tuple
+
+import torch
+import torch.nn as nn
+
+from mmdet.registry import MODELS
+
+
+@MODELS.register_module()
+class ProposalCompressionHead(nn.Module):
+
+    def __init__(
+        self,
+        in_channels=256,
+        hidden_dim=128,
+        topk=128
+    ):
+        super().__init__()
+
+        self.topk = topk
+
+        self.scorer = nn.Sequential(
+            nn.Linear(in_channels, hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(
+        self,
+        proposal_feats,
+        proposals
+    ):
+
+        scores = self.scorer(proposal_feats).squeeze(-1)
+
+        k = min(self.topk, scores.shape[0])
+
+        topk_scores, topk_idx = torch.topk(
+            scores,
+            k=k,
+            dim=0
+        )
+
+        compressed_proposals = proposals[topk_idx]
+
+        return compressed_proposals, topk_idx

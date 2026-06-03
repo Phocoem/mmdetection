@@ -1,10 +1,10 @@
 _base_ = '../mask_rcnn/mask-rcnn_r50_fpn_1x_coco.py'
 
 
-data_root = 'data/mmdet_dataset/'
+data_root = 'mmdet_dataset/cabbages/'
 
 metainfo = {
-    'classes': ('lettuce',),
+    'classes': ('cabbage',),
     'palette': [(220, 20, 60)]
 }
 
@@ -61,4 +61,4 @@ model = dict(
 )
 
 load_from = 'checkpoints/mask_rcnn_r50.pth'
-work_dir = './work_dirs/mask_rcnn_r50_lettuce'
+work_dir = './work_dirs/mask_rcnn_r50_cabbage'
