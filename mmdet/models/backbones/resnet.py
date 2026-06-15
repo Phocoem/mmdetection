@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
 
+import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from mmcv.cnn import build_conv_layer, build_norm_layer, build_plugin_layer
@@ -657,6 +658,19 @@ class ResNet(BaseModule):
                     # 2. Log kích thước của từng tầng C (C2, C3, C4, C5)
                     with open(log_file, "a") as f:
                         f.write(f"  - Stage {i+1} (C{i+2}) Output: {list(x.shape)}\n")
+            if not hasattr(self, "saved_feature"):
+    
+                self.saved_feature = True
+
+                torch.save(
+                {
+                    "C2": outs[0].cpu(),
+                    "C3": outs[1].cpu(),
+                    "C4": outs[2].cpu(),
+                    "C5": outs[3].cpu(),
+                },
+                "feature_maps.pt"
+            )
             
             return tuple(outs)
 

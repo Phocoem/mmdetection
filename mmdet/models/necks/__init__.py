@@ -21,10 +21,11 @@ from .yolox_pafpn import YOLOXPAFPN
 from .cbam_fpn import CBAMFPN
 from .aspp_fpn import ASPPFPN
 from .cbam_aspp_fpn import CBAMASPPFPN, ECAFPN, CBAMASPPBiFPN
+from .fpfpn import FPFPN
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
     'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'DilatedEncoder',
     'CTResNetNeck', 'SSDNeck', 'YOLOXPAFPN', 'DyHead', 'CSPNeXtPAFPN', 'SSH',
-    'FPN_DropBlock', 'CBAMFPN', 'ASPPFPN', 'CBAMASPPFPN', 'ECAFPN','CBAMASPPBiFPN'
+    'FPN_DropBlock', 'CBAMFPN', 'ASPPFPN', 'CBAMASPPFPN', 'ECAFPN','CBAMASPPBiFPN', 'FPFPN'
 ]
