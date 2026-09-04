@@ -1,4 +1,15 @@
-"""Build a deterministic, label-preserving corruption benchmark."""
+
+"""Build a deterministic, label-preserving corruption benchmark.
+
+This script creates a COCO-C/ImageNet-C style corruption benchmark for
+instance segmentation.
+
+Important design:
+- Only clean test images are corrupted.
+- COCO annotations are unchanged except image file extensions.
+- Output images are saved as PNG to avoid uncontrolled JPEG recompression.
+- Existing completed conditions are skipped unless --overwrite is used.
+"""
 
 import argparse
 import hashlib
@@ -11,6 +22,11 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+# Compatibility for old imagecorruptions with NumPy >= 2.0.
+# Safe to keep even when using NumPy 1.26.
+if not hasattr(np, 'float_'):
+    np.float_ = np.float64
+
 
 NOISE_CORRUPTIONS = (
     'gaussian_noise',
@@ -18,7 +34,8 @@ NOISE_CORRUPTIONS = (
     'impulse_noise',
 )
 
-# ImageNet-C/COCO-C corruptions that do not geometrically warp mask labels.
+# ImageNet-C / COCO-C corruptions that preserve image geometry.
+# These are suitable for instance segmentation because masks remain valid.
 LABEL_PRESERVING_C_CORRUPTIONS = NOISE_CORRUPTIONS + (
     'defocus_blur',
     'motion_blur',
@@ -31,7 +48,13 @@ LABEL_PRESERVING_C_CORRUPTIONS = NOISE_CORRUPTIONS + (
     'pixelate',
     'jpeg_compression',
 )
-MASK_UNSAFE_CORRUPTIONS = {'elastic_transform', 'glass_blur'}
+
+# These corruptions geometrically move image content.
+# If masks are not transformed in exactly the same way, labels become invalid.
+MASK_UNSAFE_CORRUPTIONS = {
+    'elastic_transform',
+    'glass_blur',
+}
 
 
 def parse_args():
@@ -40,22 +63,43 @@ def parse_args():
         '--source-root',
         default='mmdet_dataset/lettuce',
         help='Root containing annotations/test.json and clean test images.')
-    parser.add_argument('--ann-file', default='annotations/test.json')
-    parser.add_argument('--image-dir', default='images/test')
     parser.add_argument(
-        '--output-root', default='mmdet_dataset/lettuce_c')
+        '--ann-file',
+        default='annotations/test.json',
+        help='COCO annotation file relative to source-root.')
+    parser.add_argument(
+        '--image-dir',
+        default='images/test',
+        help='Clean test image directory relative to source-root.')
+    parser.add_argument(
+        '--output-root',
+        default='mmdet_dataset/lettuce_c',
+        help='Output benchmark root.')
+
     parser.add_argument(
         '--suite',
         choices=('noise', 'label_preserving_c'),
-        default='noise')
+        default='label_preserving_c',
+        help='Benchmark suite to generate. Default is full label-preserving suite.')
     parser.add_argument(
         '--corruptions',
         nargs='+',
         help='Explicit imagecorruptions names; overrides --suite.')
     parser.add_argument(
-        '--severities', type=int, nargs='+', default=[1, 2, 3, 4, 5])
-    parser.add_argument('--seed', type=int, default=2026)
-    parser.add_argument('--overwrite', action='store_true')
+        '--severities',
+        type=int,
+        nargs='+',
+        default=[1, 2, 3, 4, 5],
+        help='Severity levels from 1 to 5.')
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=2026,
+        help='Global deterministic seed.')
+    parser.add_argument(
+        '--overwrite',
+        action='store_true',
+        help='Delete output-root and rebuild everything from scratch.')
     return parser.parse_args()
 
 
@@ -70,7 +114,8 @@ def sha256_file(path):
 def condition_seed(global_seed, corruption, severity, file_name):
     text = f'{global_seed}|{corruption}|{severity}|{file_name}'
     return int.from_bytes(
-        hashlib.sha256(text.encode('utf-8')).digest()[:4], 'little')
+        hashlib.sha256(text.encode('utf-8')).digest()[:4],
+        'little')
 
 
 def aggregate_hash(entries):
@@ -81,14 +126,45 @@ def aggregate_hash(entries):
     return digest.hexdigest()
 
 
+def get_dependency_version(package_name):
+    try:
+        return version(package_name)
+    except Exception:
+        return 'unknown'
+
+
+def build_output_annotation(annotation, output_names):
+    output_annotation = json.loads(json.dumps(annotation))
+    for item, output_name in zip(output_annotation['images'], output_names):
+        item['file_name'] = output_name
+    return output_annotation
+
+
+def condition_is_complete(condition_dir, output_names):
+    if not condition_dir.is_dir():
+        return False
+
+    expected_paths = [condition_dir / name for name in output_names]
+    return all(path.is_file() for path in expected_paths)
+
+
+def hash_condition(condition_dir, output_names):
+    condition_hashes = []
+    for output_name in output_names:
+        output_path = condition_dir / output_name
+        condition_hashes.append((output_name, sha256_file(output_path)))
+    return condition_hashes
+
+
 def main():
     args = parse_args()
+
     try:
         from imagecorruptions import corrupt
     except ImportError as exc:
         raise ImportError(
             'Install research dependencies first: '
-            'pip install -r requirements_research.txt') from exc
+            'pip install imagecorruptions') from exc
 
     source_root = Path(args.source_root).resolve()
     ann_path = source_root / args.ann_file
@@ -97,48 +173,62 @@ def main():
 
     if not ann_path.is_file():
         raise FileNotFoundError(f'Annotation file not found: {ann_path}')
+
     if not image_dir.is_dir():
         raise FileNotFoundError(
             f'Clean test directory not found: {image_dir}. '
             'Do not generate corruptions from an already corrupted set.')
-    if output_root.exists() and any(output_root.iterdir()):
-        if not args.overwrite:
-            raise FileExistsError(
-                f'{output_root} is not empty. Pass --overwrite to rebuild.')
+
+    if output_root.exists() and args.overwrite:
+        print(f'Removing existing output root: {output_root}')
         shutil.rmtree(output_root)
+
+    output_root.mkdir(parents=True, exist_ok=True)
 
     corruptions = args.corruptions
     suite_name = args.suite if corruptions is None else 'custom'
+
     if corruptions is None:
-        corruptions = (
-            NOISE_CORRUPTIONS if args.suite == 'noise'
-            else LABEL_PRESERVING_C_CORRUPTIONS)
+        if args.suite == 'noise':
+            corruptions = NOISE_CORRUPTIONS
+        else:
+            corruptions = LABEL_PRESERVING_C_CORRUPTIONS
+
+    corruptions = tuple(corruptions)
+
     unsafe = sorted(set(corruptions) & MASK_UNSAFE_CORRUPTIONS)
     if unsafe:
         raise ValueError(
             f'Corruptions {unsafe} move image content without updating masks '
             'and are disabled for strict instance-segmentation evaluation.')
+
     severities = sorted(set(args.severities))
     if not severities or any(level not in range(1, 6) for level in severities):
         raise ValueError('Severities must be integers from 1 to 5.')
 
     annotation = json.loads(ann_path.read_text(encoding='utf-8-sig'))
     images = sorted(annotation['images'], key=lambda item: item['id'])
-    output_names = [f'{Path(item["file_name"]).stem}.png' for item in images]
+
+    output_names = [
+        f'{Path(item["file_name"]).stem}.png'
+        for item in images
+    ]
+
     if len(output_names) != len(set(output_names)):
-        raise ValueError('Image file stems are not unique; cannot use PNG names.')
+        raise ValueError(
+            'Image file stems are not unique; cannot safely convert names to PNG.')
 
     missing = [
-        item['file_name'] for item in images
+        item['file_name']
+        for item in images
         if not (image_dir / item['file_name']).is_file()
     ]
+
     if missing:
         raise FileNotFoundError(
             f'{len(missing)} clean test images are missing; first: {missing[0]}')
 
-    output_annotation = json.loads(json.dumps(annotation))
-    for item, output_name in zip(output_annotation['images'], output_names):
-        item['file_name'] = output_name
+    output_annotation = build_output_annotation(annotation, output_names)
     output_ann_path = output_root / 'annotations' / 'test_png.json'
     output_ann_path.parent.mkdir(parents=True, exist_ok=True)
     output_ann_path.write_text(
@@ -146,25 +236,64 @@ def main():
         encoding='utf-8')
 
     source_hashes = []
-    generated_conditions = []
     for item in images:
         source_path = image_dir / item['file_name']
         source_hashes.append((item['file_name'], sha256_file(source_path)))
 
+    generated_conditions = []
+
+    print('==================================================')
+    print('Building Lettuce-C corruption benchmark')
+    print(f'Source root     : {source_root}')
+    print(f'Clean image dir : {image_dir}')
+    print(f'Output root     : {output_root}')
+    print(f'Suite           : {suite_name}')
+    print(f'Corruptions     : {list(corruptions)}')
+    print(f'Severities      : {severities}')
+    print(f'Images          : {len(images)}')
+    print('==================================================')
+
     for corruption in corruptions:
         for severity in severities:
             condition_dir = output_root / 'images' / corruption / str(severity)
+
+            if condition_is_complete(condition_dir, output_names):
+                condition_hashes = hash_condition(condition_dir, output_names)
+                generated_conditions.append({
+                    'corruption': corruption,
+                    'severity': severity,
+                    'image_prefix': f'images/{corruption}/{severity}/',
+                    'image_count': len(images),
+                    'sha256': aggregate_hash(condition_hashes),
+                })
+                print(
+                    f'Skipped existing {corruption} severity {severity} '
+                    f'({len(images)} images)')
+                continue
+
+            if condition_dir.exists():
+                print(
+                    f'Rebuilding incomplete condition: '
+                    f'{corruption} severity {severity}')
+                shutil.rmtree(condition_dir)
+
             condition_dir.mkdir(parents=True, exist_ok=True)
             condition_hashes = []
+
             for item, output_name in zip(images, output_names):
                 source_path = image_dir / item['file_name']
+
                 with Image.open(source_path) as image:
                     rgb = np.asarray(image.convert('RGB'), dtype=np.uint8)
 
                 state = np.random.get_state()
                 np.random.seed(
                     condition_seed(
-                        args.seed, corruption, severity, item['file_name']))
+                        args.seed,
+                        corruption,
+                        severity,
+                        item['file_name']))
+
                 try:
                     corrupted = corrupt(
                         rgb,
@@ -172,15 +301,22 @@ def main():
                         severity=severity)
                 finally:
                     np.random.set_state(state)
+
+                corrupted = np.asarray(corrupted)
+
                 if corrupted.shape != rgb.shape:
                     raise ValueError(
                         f'{corruption} changed image shape from {rgb.shape} '
                         f'to {corrupted.shape}; masks would be invalid.')
 
+                corrupted = np.clip(corrupted, 0, 255).astype(np.uint8)
+
                 output_path = condition_dir / output_name
-                Image.fromarray(
-                    np.asarray(corrupted, dtype=np.uint8), mode='RGB').save(
-                        output_path, format='PNG', optimize=False)
+                Image.fromarray(corrupted).save(
+                    output_path,
+                    format='PNG',
+                    optimize=False)
+
                 condition_hashes.append(
                     (output_name, sha256_file(output_path)))
 
@@ -191,6 +327,7 @@ def main():
                 'image_count': len(images),
                 'sha256': aggregate_hash(condition_hashes),
             })
+
             print(f'Generated {corruption} severity {severity}')
 
     manifest = {
@@ -200,7 +337,7 @@ def main():
         'generator': 'imagecorruptions',
         'generator_sha256': sha256_file(Path(__file__).resolve()),
         'dependency_versions': {
-            package: version(package)
+            package: get_dependency_version(package)
             for package in (
                 'imagecorruptions',
                 'numpy',
@@ -224,14 +361,26 @@ def main():
             'Only clean test images were used as sources.',
             'Annotations are unchanged except file extensions.',
             'PNG output avoids uncontrolled extra JPEG recompression.',
+            'Existing complete conditions are skipped unless --overwrite is used.',
+            'Incomplete conditions are rebuilt to avoid mixed or partial outputs.',
             'Test corruptions must never be used for model selection.',
+            'glass_blur and elastic_transform are excluded because they are not strictly mask-preserving.',
         ],
     }
-    (output_root / 'manifest.json').write_text(
+
+    manifest_path = output_root / 'manifest.json'
+    manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=True),
         encoding='utf-8')
-    print(f'Benchmark manifest: {output_root / "manifest.json"}')
+
+    print('==================================================')
+    print(f'Benchmark manifest: {manifest_path}')
+    print(f'Conditions        : {len(generated_conditions)}')
+    print(f'Total images      : {len(generated_conditions) * len(images)}')
+    print('Done.')
+    print('==================================================')
 
 
 if __name__ == '__main__':
     main()
+

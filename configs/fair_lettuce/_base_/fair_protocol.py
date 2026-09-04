@@ -1,7 +1,7 @@
 """Shared experimental protocol for fair lettuce instance segmentation."""
 
-fair_data_root = 'mmdet_dataset/lettuce/'
-fair_metainfo = dict(classes=('lettuce',), palette=[(220, 20, 60)])
+fair_data_root = 'mmdet_dataset/apple/'
+fair_metainfo = dict(classes=('apple',), palette=[(220, 20, 60)])
 
 fair_data_preprocessor = dict(
     type='DetDataPreprocessor',
@@ -135,19 +135,12 @@ fair_param_scheduler = [
         begin=0,
         end=500),
     dict(
-        type='ReduceOnPlateauLR',
-        monitor='coco/segm_mAP',
-        rule='greater',
-        factor=0.5,
-        patience=5,
-        threshold=0.001,
-        threshold_rule='abs',
-        cooldown=1,
-        min_value=1e-6,
+        type='MultiStepLR',
+        by_epoch=True,
         begin=0,
         end=200,
-        by_epoch=True,
-        verbose=True),
+        milestones=[140, 180],
+        gamma=0.1),
 ]
 
 fair_default_hooks = dict(
@@ -164,7 +157,7 @@ fair_default_hooks = dict(
     sampler_seed=dict(type='DistSamplerSeedHook'),
     visualization=dict(type='DetVisualizationHook'))
 
-fair_randomness = dict(seed=2026, deterministic=True)
+fair_randomness = dict(seed=2027, deterministic=True)
 fair_auto_scale_lr = dict(enable=False, base_batch_size=2)
 fair_custom_hooks = [
     dict(

@@ -1,0 +1,44 @@
+{
+  "models": [
+    {
+      "name": "Mask R-CNN R50",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_fpn/seed_2026"
+    },
+    {
+      "name": "Mask R-CNN R101",
+      "config": "configs/fair_lettuce/mask_rcnn_r101_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r101_fpn/seed_2026"
+    },
+    {
+      "name": "SOLO R50",
+      "config": "configs/fair_lettuce/solo_r50.py",
+      "work_dir": "work_dirs/research/solo_r50/seed_2026"
+    },
+    {
+      "name": "YOLACT R50",
+      "config": "configs/fair_lettuce/yolact_r50.py",
+      "work_dir": "work_dirs/research/yolact_r50/seed_2026"
+    },
+    {
+      "name": "Enhanced Mask R-CNN (DGCF)",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_dgcf_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_dgcf_fpn/seed_2026"
+    },
+    {
+      "name": "DGCF w/o Detail",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_dgcf_no_detail_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_dgcf_no_detail_fpn/seed_2026"
+    },
+    {
+      "name": "DGCF w/o Gate",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_dgcf_no_gate_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_dgcf_no_gate_fpn/seed_2026"
+    },
+    {
+      "name": "SOLOv2 R50",
+      "config": "configs/fair_lettuce/solov2_r50.py",
+      "work_dir": "work_dirs/research/solov2_r50/seed_2026"
+    }
+  ]
+}

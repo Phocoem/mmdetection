@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('--clean-ann-file', default='annotations/test.json')
     parser.add_argument('--clean-image-prefix', default='images/test/')
     parser.add_argument(
-        '--benchmark-root', default='mmdet_dataset/lettuce_c')
+        '--benchmark-root', default='mmdet_dataset/lettuce_d')
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--seed', type=int, default=2026)
     parser.add_argument('--skip-existing', action='store_true')

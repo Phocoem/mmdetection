@@ -30,4 +30,4 @@ model = dict(
     bbox_head=dict(num_classes=1),
     mask_head=dict(num_classes=1))
 
-work_dir = './work_dirs/fair_lettuce/yolact_r50'
+work_dir = 'work_dirs/research/yolact_r50/seed_2025_3'

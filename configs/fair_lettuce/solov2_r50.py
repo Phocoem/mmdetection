@@ -29,4 +29,4 @@ model = dict(
     backbone=_base_.fair_r50_backbone,
     mask_head=dict(num_classes=1))
 
-work_dir = './work_dirs/fair_lettuce/solov2_r50'
+work_dir = 'work_dirs/research/solov2_r50/seed_2026_3'

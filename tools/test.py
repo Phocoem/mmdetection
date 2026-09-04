@@ -1,4 +1,14 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+
+# --- weights_only compat patch (PyTorch 2.6+) ---
+import torch as _torch
+_orig_load = _torch.load
+def _patched_load(*a, **kw):
+    kw.setdefault('weights_only', False)
+    return _orig_load(*a, **kw)
+_torch.load = _patched_load
+# --- end patch ---
+
 import argparse
 import os
 import os.path as osp

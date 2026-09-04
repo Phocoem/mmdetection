@@ -4,6 +4,19 @@ import argparse
 import json
 from pathlib import Path
 
+import torch
+
+# Fix for PyTorch >= 2.6:
+# MMEngine checkpoints may contain objects such as HistoryBuffer.
+# PyTorch 2.6+ defaults torch.load(weights_only=True), which can block these objects.
+_old_torch_load = torch.load
+
+def _patched_torch_load(*args, **kwargs):
+    kwargs.setdefault('weights_only', False)
+    return _old_torch_load(*args, **kwargs)
+
+torch.load = _patched_torch_load
+
 from mmengine.config import Config
 from mmengine.runner import Runner
 
@@ -55,6 +68,7 @@ def main():
         runner = Runner.from_cfg(cfg)
     else:
         runner = RUNNERS.build(cfg)
+
     metrics = runner.test()
 
     metrics_path = Path(args.metrics_out)
@@ -67,4 +81,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

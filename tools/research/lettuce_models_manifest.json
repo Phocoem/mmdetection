@@ -1,0 +1,52 @@
+{
+  "models": [
+    {
+      "key": "mask_rcnn_r50_fpn",
+      "name": "Mask R-CNN R50-FPN",
+      "group": "baseline",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_fpn/seed_{seed}",
+      "checkpoint": ""
+    },
+    {
+      "key": "mask_rcnn_r101_fpn",
+      "name": "Mask R-CNN R101-FPN",
+      "group": "baseline",
+      "config": "configs/fair_lettuce/mask_rcnn_r101_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r101_fpn/seed_{seed}",
+      "checkpoint": ""
+    },
+    {
+      "key": "solo_r50",
+      "name": "SOLO R50",
+      "group": "baseline",
+      "config": "configs/fair_lettuce/solo_r50.py",
+      "work_dir": "work_dirs/research/solo_r50/seed_{seed}",
+      "checkpoint": ""
+    },
+    {
+      "key": "solov2_r50",
+      "name": "SOLOv2 R50",
+      "group": "baseline",
+      "config": "configs/fair_lettuce/solov2_r50.py",
+      "work_dir": "work_dirs/research/solov2_r50/seed_{seed}",
+      "checkpoint": ""
+    },
+    {
+      "key": "yolact_r50",
+      "name": "YOLACT R50",
+      "group": "baseline",
+      "config": "configs/fair_lettuce/yolact_r50.py",
+      "work_dir": "work_dirs/research/yolact_r50/seed_{seed}",
+      "checkpoint": ""
+    },
+    {
+      "key": "mask_rcnn_r50_dab_boundary_fpn",
+      "name": "Enhanced Mask R-CNN",
+      "group": "proposed",
+      "config": "configs/fair_lettuce/mask_rcnn_r50_dab_boundary_fpn.py",
+      "work_dir": "work_dirs/research/mask_rcnn_r50_dab_boundary_fpn/seed_{seed}",
+      "checkpoint": ""
+    }
+  ]
+}

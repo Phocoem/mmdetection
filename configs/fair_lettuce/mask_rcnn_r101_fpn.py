@@ -31,4 +31,4 @@ model = dict(
         bbox_head=dict(num_classes=1),
         mask_head=dict(num_classes=1)))
 
-work_dir = './work_dirs/fair_lettuce/mask_rcnn_r101_fpn'
+work_dir = 'work_dirs/research/mask_rcnn_r101_fpn/seed_2027'
